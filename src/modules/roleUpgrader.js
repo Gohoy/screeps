@@ -17,7 +17,7 @@ export const roleUpgrader = function(creep) {
     var source = creep.pos.findClosestByPath(FIND_SOURCES_ACTIVE)
 
     if (creep.memory.harvesting) {
-        creep.say("升级需要能量")
+        creep.say("needEnergy")
             // 先到storage中去能量
         if (storage) {
             if (creep.withdraw(storage, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
@@ -36,7 +36,7 @@ export const roleUpgrader = function(creep) {
         }
     } else {
         // 如果满能量去升级
-        creep.say("升级升级UP! ")
+        creep.say("upupup")
         if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
             creep.moveTo(creep.room.controller);
         }
