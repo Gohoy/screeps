@@ -1,5 +1,60 @@
 'use strict';
 
+const init = function () {
+    // 预置数
+    const rooms = Memory.rooms;
+    for (var roomName in rooms) {
+        var structures = Memory.rooms[roomName].objects;
+        var room = Game.rooms[roomName];
+        var minerals = room.find(FIND_MINERALS);
+        structures.mineral0 = minerals[0].mineralType;
+        if (!structures.source0) {
+            var sources = room.find(FIND_SOURCES);
+            structures.source0 = room.storage.pos.findClosestByRange(FIND_SOURCES).id;
+            if (sources[1] && sources[1].id == structures.source0) {
+                structures.source1 = sources[0].id;
+            } else if (sources[1]) {
+                structures.source1 = sources[1].id;
+            }
+        }
+        // if (!structures.sourceContainer) {
+            if (Memory.rooms[roomName].objects.container) {
+
+                var containers = Memory.rooms[roomName].objects.container;
+                for (var index in containers) {
+                    var container = containers[index];
+                    if (Game.getObjectById(container).pos.inRangeTo(Game.getObjectById(structures.source0), 3)) {
+                        structures.sourceContainer = container;
+                    } else {
+                        structures.mineralContainer = container;
+                    }
+                }
+            }else {
+                structures.sourceContainer = room.storage.id;
+                structures.mineralContainer = room.storage.id;
+            }
+        // }
+        // if (!structures.sourceLink) {
+            if (Memory.rooms[roomName].objects.link) {
+                var links = Memory.rooms[roomName].objects.link;
+                for (var index in links) {
+                    var link = links[index];
+                    if (Game.getObjectById(link).pos.inRangeTo(Game.getObjectById(structures.source1), 3)) {
+                        structures.sourceLink = link;
+                    } else if (Game.getObjectById(link).pos.inRangeTo(room.controller, 3)) {
+                        structures.upgradeLink = link;
+                    } else if (Game.getObjectById(link).pos.inRangeTo(room.storage, 3)){
+                        structures.storageLink = link;
+                    }
+                }
+            }
+        // }
+        // console.log(roomName)
+        // console.log(structures.sourceContainer)
+        // console.log('.......')
+    }
+};
+
 const repair0 = function (creep) {
     if (!creep.memory) {
         return
@@ -154,10 +209,10 @@ const carry0 = function (creep) {
 
         var toList = creep.memory.tolist;
         var to0 = toList[0].filter((to)=>{
-                return Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 0
+                return Game.getObjectById(to) && Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 0
             });
         var to1 = toList[1].filter((to)=>{
-            return Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 300
+            return Game.getObjectById(to) && Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 300
         });
         if (to0.length > 0) {
             creep.memory.to = to0[0];
@@ -254,7 +309,7 @@ const mineCarry0 = function (creep) {
     }
     var resourceType = creep.memory.resourceType;
     var mineralContainer = Game.getObjectById(creep.memory.frombase);
-    if (mineralContainer.store.getUsedCapacity() > 0) {
+    if (mineralContainer &&  mineralContainer.store.getUsedCapacity() > 0) {
         if (creep.memory.harvesting) {
             if (creep.withdraw(mineralContainer, resourceType) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(mineralContainer);
@@ -386,36 +441,37 @@ const towerRepair = function (tower) {
             return structure.hits < structure.hitsMax && (structure.structureType != STRUCTURE_WALL && structure.structureType != STRUCTURE_RAMPART);
         }
     });
-    // var rampart = tower.pos.findClosestByRange(FIND_STRUCTURES, {
-    //     filter: (structure) => {
-    //         return ((structure.structureType == STRUCTURE_RAMPART && structure.hits < 1000000) || (structure.structureType == STRUCTURE_WALL && structure.hits < 1000000))
-    //     }
-    // })
+    var rampart = tower.pos.findClosestByRange(FIND_STRUCTURES, {
+        filter: (structure) => {
+            return ((structure.structureType == STRUCTURE_RAMPART && structure.hits < 1000) || (structure.structureType == STRUCTURE_WALL && structure.hits < 1000))
+        }
+    });
     var invader = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
         filter: (creep) => {
             return creep.owner.username == 'Invader'
         }
     });
-    // var target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
-    //     filter: (creep) => {
-    //         return creep.owner.username != 'Invader'
-    //     }
-    // });
+    var target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
+        filter: (creep) => {
+            return creep.owner.username != 'Invader'
+        }
+    });
     if (invader) {
         tower.attack(invader);
     }
-    // else if (target) {
-    //     // tower.repair(rampart)
-    // } 
+    else if (target) {
+        // tower.repair(rampart)
+        tower.attack(target);
+    } 
     else if (structureNeedRepairedDanger) {
         tower.repair(structureNeedRepairedDanger);
     } else if (tower.store[RESOURCE_ENERGY] > 400) {
         if (structureNeedRepaired) {
             tower.repair(structureNeedRepaired);
         }
-        // else if (rampart) {
-        //     tower.repair(rampart)
-        // }
+        else if (rampart) {
+            tower.repair(rampart);
+        }
     }
 };
 
@@ -616,6 +672,7 @@ const spawn0 = function (roomName) {
             spawn.pos.y, { align: 'left', opacity: 0.8 });
     }
     towerRepair( Game.getObjectById(structures.tower[2]));
+    towerRepair( Game.getObjectById(structures.tower[1]));
 
     // 这里进行各个creep的操作,上面已经获取了各个种类的列表
     for (var index in harvesters) {
@@ -670,34 +727,71 @@ if(Game.time%10000 == 0){
 
 };
 
+// map 应该是 { [{from: 'E32N53',to: 'E32N52',resource: 'energy',amount: 1000,storageMoreThan: 10000}] }
+const sendResources = (map) => {
+  for (let i = 0; i < map.length; i++) {
+    const { from, to, resource, amount, storageMoreThan } = map[i];
+    const fromRoom = Game.rooms[from];
+    const storage = fromRoom.storage;
+    console.log(
+      storage.store[resource],
+      storageMoreThan,
+      fromRoom.terminal.store[resource],
+      amount
+    );
+    if (
+      storage.store[resource] > storageMoreThan &&
+      fromRoom.terminal.store[resource] >= amount
+    ) {
+      const res = fromRoom.terminal.send(resource, amount, to);
+      console.log(res);
+    }
+  }
+};
+
 module.exports.loop = function () {
-    // 这几行代码用来更新预制静态数据，比如
-    // for(var room in Game.rooms){
-    //     cacheObjects(room)
-    // }
-    // init()
+  // 这几行代码用来更新预制静态数据，比如
+  // for(var room in Game.rooms){
+  //     cacheObjects(room)
+  // }
+  init();
 
-    if (!Game.rooms["E32N53"]) {
-        console.log(Game.cpu.bucket);
-        if (Game.cpu.bucket == 10000) {
-            Game.cpu.generatePixel();
-        }
-        return
-    }
+  if (!Game.rooms["E32N53"]) {
+    console.log(Game.cpu.bucket);
     if (Game.cpu.bucket == 10000) {
-        Game.cpu.generatePixel();
+      Game.cpu.generatePixel();
     }
-    // 死亡creep 的memory清理
-    for (var name in Memory.creeps) {
-        if (!Game.creeps[name]) {
-            delete Memory.creeps[name];
-            console.log('Clearing non-existing creep memory:', name);
-        }
+    return;
+  }
+  if (Game.cpu.bucket == 10000) {
+    Game.cpu.generatePixel();
+  }
+  // 死亡creep 的memory清理
+  for (var name in Memory.creeps) {
+    if (!Game.creeps[name]) {
+      delete Memory.creeps[name];
+      console.log("Clearing non-existing creep memory:", name);
     }
+  }
 
-    for (var room in Memory.rooms) {
-        spawn0(room);
-    }
-
+  sendResources([
+    {
+      from: "E32N53",
+      to: "E33N55",
+      resource: RESOURCE_ENERGY,
+      amount: 10000,
+      storageMoreThan: 400000,
+    },
+    {
+      from: "E31N53",
+      to: "E31N54",
+      resource: RESOURCE_ENERGY,
+      amount: 10000,
+      storageMoreThan: 400000,
+    },
+  ]);
+  for (var room in Memory.rooms) {
+    spawn0(room);
+  }
 };
 //# sourceMappingURL=main.js.map

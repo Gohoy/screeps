@@ -159,6 +159,7 @@ export const spawn0 = function (roomName) {
             spawn.pos.y, { align: 'left', opacity: 0.8 });
     }
     towerRepair( Game.getObjectById(structures.tower[2]))
+    towerRepair( Game.getObjectById(structures.tower[1]))
 
     // 这里进行各个creep的操作,上面已经获取了各个种类的列表
     for (var index in harvesters) {

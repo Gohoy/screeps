@@ -4,10 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "push": "rollup -cw --environment DEST:default",
-        "local": "rollup -cw --environment DEST:local",
-        "build": "rollup -cw",
-        "test": "rollup -cw --environment DEST:test"
+        "push": "rollup -cw --environment DEST:main"
     },
     "keywords": [],
     "author": "",

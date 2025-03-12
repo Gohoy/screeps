@@ -54,10 +54,10 @@ export const carry0 = function (creep) {
 
         var toList = creep.memory.tolist
         var to0 = toList[0].filter((to)=>{
-                return Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 0
+                return Game.getObjectById(to) && Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 0
             })
         var to1 = toList[1].filter((to)=>{
-            return Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 300
+            return Game.getObjectById(to) && Game.getObjectById(to).store.getFreeCapacity(RESOURCE_ENERGY) > 300
         })
         if (to0.length > 0) {
             creep.memory.to = to0[0]

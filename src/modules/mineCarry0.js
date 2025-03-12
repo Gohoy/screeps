@@ -18,7 +18,7 @@ export const mineCarry0 = function (creep) {
     }
     var resourceType = creep.memory.resourceType;
     var mineralContainer = Game.getObjectById(creep.memory.frombase)
-    if (mineralContainer.store.getUsedCapacity() > 0) {
+    if (mineralContainer &&  mineralContainer.store.getUsedCapacity() > 0) {
         if (creep.memory.harvesting) {
             if (creep.withdraw(mineralContainer, resourceType) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(mineralContainer);
