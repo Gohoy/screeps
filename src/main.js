@@ -5,12 +5,31 @@ import { cacheObjects } from "./modules/utils/cacheObjects";
 import { sendResources } from "./modules/utils/sendResources";
 module.exports.loop = function () {
   // 这几行代码用来更新预制静态数据，比如
-  // for(var room in Game.rooms){
-  //     cacheObjects(room)
-  // }
+
+  for (var room in Game.rooms) {
+    if (["E31N53", "E32N53", "E33N53", "E32N52"].includes(room)) {
+      if (!Game.rooms[room].memory.objects) {
+        cacheObjects();
+      }
+    }
+  }
+
   init();
+  var shard2HasCreep = false;
+  var shard2HasConstructsite = false;
+  // 获取所有建筑基地，获取在E30N50的
 
   if (!Game.rooms["E32N53"]) {
+    if (Game.creeps["travellerE30N50"]) {
+      shard2HasCreep = true;
+      Game.creeps["travellerE30N50"].room.createConstructionSite(
+        4,
+        39,
+        STRUCTURE_CONTAINER
+      );
+      shard2HasConstructsite = true;
+    }
+
     console.log(Game.cpu.bucket);
     if (Game.cpu.bucket == 10000) {
       Game.cpu.generatePixel();
@@ -45,6 +64,11 @@ module.exports.loop = function () {
     },
   ]);
   for (var room in Memory.rooms) {
-    spawn0(room);
+    if (["E31N53", "E32N53", "E33N53", "E32N52"].includes(room)) {
+      spawn0(room);
+    }
   }
+  // if (!shard2HasConstructsite && !shard2HasCreep) {
+  //   travel("Spawn11", "5c0e406c504e0a34e3d61d68");
+  // }
 };

@@ -1,58 +1,70 @@
 'use strict';
 
 const init = function () {
-    // 预置数
-    const rooms = Memory.rooms;
-    for (var roomName in rooms) {
-        var structures = Memory.rooms[roomName].objects;
-        var room = Game.rooms[roomName];
-        var minerals = room.find(FIND_MINERALS);
-        structures.mineral0 = minerals[0].mineralType;
-        if (!structures.source0) {
-            var sources = room.find(FIND_SOURCES);
-            structures.source0 = room.storage.pos.findClosestByRange(FIND_SOURCES).id;
-            if (sources[1] && sources[1].id == structures.source0) {
-                structures.source1 = sources[0].id;
-            } else if (sources[1]) {
-                structures.source1 = sources[1].id;
-            }
-        }
-        // if (!structures.sourceContainer) {
-            if (Memory.rooms[roomName].objects.container) {
-
-                var containers = Memory.rooms[roomName].objects.container;
-                for (var index in containers) {
-                    var container = containers[index];
-                    if (Game.getObjectById(container).pos.inRangeTo(Game.getObjectById(structures.source0), 3)) {
-                        structures.sourceContainer = container;
-                    } else {
-                        structures.mineralContainer = container;
-                    }
-                }
-            }else {
-                structures.sourceContainer = room.storage.id;
-                structures.mineralContainer = room.storage.id;
-            }
-        // }
-        // if (!structures.sourceLink) {
-            if (Memory.rooms[roomName].objects.link) {
-                var links = Memory.rooms[roomName].objects.link;
-                for (var index in links) {
-                    var link = links[index];
-                    if (Game.getObjectById(link).pos.inRangeTo(Game.getObjectById(structures.source1), 3)) {
-                        structures.sourceLink = link;
-                    } else if (Game.getObjectById(link).pos.inRangeTo(room.controller, 3)) {
-                        structures.upgradeLink = link;
-                    } else if (Game.getObjectById(link).pos.inRangeTo(room.storage, 3)){
-                        structures.storageLink = link;
-                    }
-                }
-            }
-        // }
-        // console.log(roomName)
-        // console.log(structures.sourceContainer)
-        // console.log('.......')
+  // 预置数
+  const rooms = Memory.rooms;
+  for (var roomName in rooms) {
+    if (!["E31N53", "E32N53", "E33N53", "E32N52"].includes(roomName)) {
+      return;
     }
+    var structures = Memory.rooms[roomName].objects;
+    var room = Game.rooms[roomName];
+    var minerals = room.find(FIND_MINERALS);
+    structures.mineral0 = minerals[0].mineralType;
+    if (!structures.source0) {
+      var sources = room.find(FIND_SOURCES);
+      structures.source0 = room.storage.pos.findClosestByRange(FIND_SOURCES).id;
+      if (sources[1] && sources[1].id == structures.source0) {
+        structures.source1 = sources[0].id;
+      } else if (sources[1]) {
+        structures.source1 = sources[1].id;
+      }
+    }
+    // if (!structures.sourceContainer) {
+    if (Memory.rooms[roomName].objects.container) {
+      var containers = Memory.rooms[roomName].objects.container;
+      for (var index in containers) {
+        var container = containers[index];
+        if (
+          Game.getObjectById(container).pos.inRangeTo(
+            Game.getObjectById(structures.source0),
+            3
+          )
+        ) {
+          structures.sourceContainer = container;
+        } else {
+          structures.mineralContainer = container;
+        }
+      }
+    } else {
+      structures.sourceContainer = room.storage.id;
+      structures.mineralContainer = room.storage.id;
+    }
+    // }
+    // if (!structures.sourceLink) {
+    if (Memory.rooms[roomName].objects.link) {
+      var links = Memory.rooms[roomName].objects.link;
+      for (var index in links) {
+        var link = links[index];
+        if (
+          Game.getObjectById(link).pos.inRangeTo(
+            Game.getObjectById(structures.source1),
+            3
+          )
+        ) {
+          structures.sourceLink = link;
+        } else if (Game.getObjectById(link).pos.inRangeTo(room.controller, 3)) {
+          structures.upgradeLink = link;
+        } else if (Game.getObjectById(link).pos.inRangeTo(room.storage, 3)) {
+          structures.storageLink = link;
+        }
+      }
+    }
+    // }
+    // console.log(roomName)
+    // console.log(structures.sourceContainer)
+    // console.log('.......')
+  }
 };
 
 const repair0 = function (creep) {
@@ -934,6 +946,28 @@ const spawn0 = function (roomName) {
   }
 };
 
+const cacheObjects = function (roomName) {
+    var room = Game.rooms[roomName];
+    // 在每个游戏步骤（tick）中更新缓存的房间对象和地形信息
+
+    // 缓存房间内的对象
+    const objects = room.find(FIND_STRUCTURES); // 根据你的需求选择合适的查找方法和过滤器
+
+    // 根据建筑物类型分类对象
+    const categorizedObjects = {};
+    objects.forEach(obj => {
+        const structureType = obj.structureType;
+        if (!categorizedObjects[structureType]) {
+            categorizedObjects[structureType] = [];
+        }
+        categorizedObjects[structureType].push(obj.id);
+    });
+
+    // 将分类后的对象存储到房间的内存中
+    room.memory.objects = categorizedObjects;
+
+};
+
 // map 应该是 { [{from: 'E32N53',to: 'E32N52',resource: 'energy',amount: 1000,storageMoreThan: 10000}] }
 const sendResources = (map) => {
   for (let i = 0; i < map.length; i++) {
@@ -941,6 +975,8 @@ const sendResources = (map) => {
     const fromRoom = Game.rooms[from];
     const storage = fromRoom.storage;
     console.log(
+      "sendResource",
+      fromRoom,
       storage.store[resource],
       storageMoreThan,
       fromRoom.terminal.store[resource],
@@ -958,12 +994,27 @@ const sendResources = (map) => {
 
 module.exports.loop = function () {
   // 这几行代码用来更新预制静态数据，比如
-  // for(var room in Game.rooms){
-  //     cacheObjects(room)
-  // }
+
+  for (var room in Game.rooms) {
+    if (["E31N53", "E32N53", "E33N53", "E32N52"].includes(room)) {
+      if (!Game.rooms[room].memory.objects) {
+        cacheObjects();
+      }
+    }
+  }
+
   init();
+  // 获取所有建筑基地，获取在E30N50的
 
   if (!Game.rooms["E32N53"]) {
+    if (Game.creeps["travellerE30N50"]) {
+      Game.creeps["travellerE30N50"].room.createConstructionSite(
+        4,
+        39,
+        STRUCTURE_CONTAINER
+      );
+    }
+
     console.log(Game.cpu.bucket);
     if (Game.cpu.bucket == 10000) {
       Game.cpu.generatePixel();
@@ -998,7 +1049,12 @@ module.exports.loop = function () {
     },
   ]);
   for (var room in Memory.rooms) {
-    spawn0(room);
+    if (["E31N53", "E32N53", "E33N53", "E32N52"].includes(room)) {
+      spawn0(room);
+    }
   }
+  // if (!shard2HasConstructsite && !shard2HasCreep) {
+  //   travel("Spawn11", "5c0e406c504e0a34e3d61d68");
+  // }
 };
 //# sourceMappingURL=main.js.map

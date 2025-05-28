@@ -5,6 +5,8 @@ export const sendResources = (map) => {
     const fromRoom = Game.rooms[from];
     const storage = fromRoom.storage;
     console.log(
+      "sendResource",
+      fromRoom,
       storage.store[resource],
       storageMoreThan,
       fromRoom.terminal.store[resource],
